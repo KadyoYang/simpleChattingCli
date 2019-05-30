@@ -94,15 +94,53 @@ int main(int argc, char* argv[]){
 void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호만 알려주고 그 번호로 전역구조체 참조해서use
 	int arraynum = *((int*)arg);
 	// 흠.. 
+	int clnt_sd = user_info[arraynum].sd; // ############### im gae
+	int str_len, roomtemp;
+	char buf[BUF_SIZE];
+	char command[10];
+
+	while((str_len = read(clnt_sd, buf, sizeof(buf))) != 0){
+		if((strcmp(buf[0], '/')) == 0){ // if message contains command
+
+			for(int i = 0 ; i < str_len; i++){
+				if((strcmp(buf[i], ' ')) == 0){
+					for(int j = 0 ; j < i ; j++){
+						command[j] = buf[j];
+					}
+					command[i] = '\0';
+					break;
+				}
+				
+			}
+			
+		}else{ // if not message contains command
+			
+
+		}
+
+		
+					
+
+	}
 	
-
-
-
-	
+	close(clnt_sd);
+	// delete array
+		
 }
        	
 
+int send_msg_to_room(){
+// if success return 0 and others 1
 
+
+
+}
+
+int send_msg_to_user(){
+	//위와 동! 
+	
+
+}
 
 void error_handler(char *message){
 	fputs(message, stderr);
@@ -113,7 +151,7 @@ void error_handler(char *message){
 int get_unused_num(){
 	int un_used_num;	
 	for(int i = 0; i < MAX_USER_NUM; i ++){
-		if(user_info[i].isuse == 0){
+		if(user_info[i].isuse == 0){ // #####################
 			un_used_num = i;
 			break;
 		}		

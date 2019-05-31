@@ -53,12 +53,14 @@ struct room_t room_info[MAX_ROOM_NUM];
 int main(int argc, char* argv[]){
 	int serv_sd, clnt_sd; //서버 클라이어느 소켓 디스크립터 변수 선언
 	struct sockaddr_in serv_addr, clnt_addr;
-	struct socklen_t clnt_addr_size;
+	socklen_t clnt_addr_size;
 	struct sd_nickname_t sd_nickname;	
 	char nickname[BUF_SIZE];
+	char buf[BUF_SIZE];
 	int strlen = 0;
 	pthread_t thread_id;
 	int arraytemp;
+	
 
 	memset(user_info, 0, sizeof(user_info));
 	memset(room_info, 0, sizeof(room_info));
@@ -113,12 +115,12 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 	// 흠.. 
 	int clnt_sd = user_info[arraynum].sd; // ############### im gae
 	int str_len, roomtemp;
-	char buf[BUF_SIZE] = {0, };
-	char buftemp[BUF_SIZE] = {0, };
-	char bufnick[BUF_SIZE] = {0, };
-	char command[10] = {0, };
-	char numbuf[10] = {0, };
-	
+	char buf[BUF_SIZE] = {'\0', };
+	char buftemp[BUF_SIZE] = {'\0', };
+	char bufnick[BUF_SIZE] = {'\0', };
+	char command[10] = {'\0', };
+	char numbuf[10] = {'\0', };
+
 	
 
 	while((str_len = read(clnt_sd, buf, sizeof(buf))) != 0){
@@ -142,10 +144,11 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 			}else if((strncmp(command, "/make", sizeof("/make")))==0){
 				char* title;
 				int j = 0;
+				int k;
 				for(int i = 0; i , str_len; i++){
 					if(strcmp((char*)buf[i], " ")==0){
 						j = i + 1;
-						for(j, int k = 0; j < str_len; j++, k++){
+						for(j, k = 0; j < str_len; j++, k++){
 							buftemp[k] = buf[j];
 						}
 						break;
@@ -160,10 +163,11 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 				int j = 0;
 				int n = 0;
 				int u;
+				int k;
 				for(int i = 0; i < str_len; i++){
 					if(strcmp((char*)buf[i], " ")==0){
 						j = i + 1;
-						for(j, int k = 0; j < str_len ; j++, k++){
+						for(j, k = 0; j < str_len ; j++, k++){
 							bufnick[k] = buf[j];
 							if(strcmp((char*)buf[j], " ") == 0){
 								n = j + 1;
@@ -263,7 +267,7 @@ void mess_user(int sd, char* nickname, char* message){
 		
 	for(int i = 0; i < MAX_USER_NUM; i++){
 		if(user_info[i].sd == sd){
-			sender = user_info[i].nickname;
+			strcpy(sender, user_info[i].nickname);
 			break;
 		}
 	}

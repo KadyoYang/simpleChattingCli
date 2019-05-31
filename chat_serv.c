@@ -229,7 +229,19 @@ void delt_room(int sd, int roomnum){
 
 int mess_room(int sd, int roomnum, char* message){
 	//위와 동! 
-	
+	char* msg;
+	for(int i = 0; i < MAX_USER_NUM; i++){
+		if(user_info[i].sd == sd){
+			strcpy(msg, strcat(user_info[i].nickname, ": "));
+			strcpy(msg, strcat(msg, message));
+			break;
+		}
+	}
+	for(int i = 0; i < MAX_USER_NUM; i++){
+		if(user_info[i].room == roomnum){
+			write(user_info[i].sd, msg, sizeof(msg));
+		}
+	}
 
 }
 

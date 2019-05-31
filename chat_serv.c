@@ -53,6 +53,10 @@ int main(int argc, char* argv[]){
 	int strlen = 0;
 	pthread_t thread_id;
 	int arraytemp;
+
+	memset(user_info, 0, sizeof(user_info));
+	memset(room_info, 0, sizeof(room_info));
+
 	// 그 위에 배열 isuse 0 으로 다 초기화 해야한다 	
 	if(argc != 2){
 		printf("Usage : %s <port> \n", argv[0]);
@@ -103,8 +107,12 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 	// 흠.. 
 	int clnt_sd = user_info[arraynum].sd; // ############### im gae
 	int str_len, roomtemp;
-	char buf[BUF_SIZE];
-	char command[10];
+	char buf[BUF_SIZE] = {0, };
+	char buftemp[BUF_SIZE] = {0, };
+	char bufnick[BUF_SIZE] = {0, };
+	char command[10] = {0, };
+	char numbuf[10] = {0, };
+	
 	
 
 	while((str_len = read(clnt_sd, buf, sizeof(buf))) != 0){
@@ -121,28 +129,89 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 				}
 				
 			}
+
 			if((strncmp(command, EXIT_ROOM_CODE, sizeof(EXIT_ROOM_CODE)))==0){
-					
+				
+				exit_room(clnt_sd);	
 			}else if((strncmp(command, MAKE_ROOM_CODE, sizeof(MAKE_ROOM_CODE)))==0){
+				char* title;
+				int j = 0;
+				for(int i = 0; i , str_len; i++){
+					if(strcmp(buf[i], " ")==0){
+						j = i + 1;
+						for(j, int k = 0; j < str_len; j++, k++){
+							buftemp[k] = buf[j];
+						}
+						break;
+					}
+				}
+				make_room(clnt_sd, buftemp);
 
 			}else if((strncmp(command, SHOW_ROOM_CODE, sizeof(SHOW_ROOM_CODE)))==0){
+				show_room(clnt_sd);
 
 			}else if((strncmp(command, MESS_USER_CODE, sizeof(MESS_USER_CODE)))==0){
+				int j = 0;
+				int n = 0;
+				for(int i = 0; i < str_len; i++){
+					if(strcmp(buf[i], " ")==0){
+						j = i + 1;
+						for(j, int k = 0; j < str_len ; j++, k++){
+							bufnick[k] = buf[j];
+							if(strcmp(buf[j], " ") == 0){
+								n = j + 1;
+								for(n, int u = 0; n < str_len; n++, u++){
+									buftemp[u] = buf[n];
+								}
+								break;
+							}
+						}
+						break;
+					}
+				}
+				mess_user(clnt_sd, bufnick, buftemp);
 
 			}else if((strncmp(command, JOIN_ROOM_CODE, sizeof(JOIN_ROOM_CODE)))==0){
-
+				int j = 0;
+				for(int i = 0; i < str_len; i++){
+					if(strcmp(buf[i], " ")==0){
+						j = i + 1;
+						for(j, int k = 0; j < str_len ; j++, k++){
+							numbuf[k] = buf[j];
+						}
+						break;
+					}
+				}
+				join_room(clnt_sd, atoi(numbuf));
+				
 			}else if((strncmp(command, DELT_ROOM_CODE, sizeof(DELT_ROOM_CODE)))==0){
-
+				int j = 0;
+				for(int i = 0; i < str_len; i ++){
+					if(strcmp(buf[i], " ")==0){
+						j = i + 1;
+						for(j, int k = 0; j < str_len; j++, k++){
+							numbuf[k] = buf[j];
+						}
+						break;
+					}
+				}
+				delt_room(clnt_sd, atoi(numbuf));	
 			}else{
-
+				write(clnt_sd, "/ help", sizeof("/ help"));
 			}	
 		}else{ // if message not contains command
-			
-
+			int j = 0;
+			for(int i = 0; i < strlen; i++){
+				if(strcmp(buf[i], " ")==0){
+					j = i + 1;
+					for(j, int k = 0; j < str_len; j++, k++){
+						buftemp[k] = buf[j];
+					}
+					break;
+				}
+			}
+			mess_room(clnt_sd, buftemp);		
 		}
-
-		
-					
 
 	}
 	
@@ -169,8 +238,9 @@ void make_room(int sd, char* title){
 }
 
 void show_room(int sd){
+	 
 	for(int i = 0 ; i < MAX_ROOM_NUM; i++){
-		if(room_info[i].isuse == 1){
+		if(room_info[i].isuse == 1){	
 			write(sd, room_info[i].title, sizeof(room_info[i].title));
 		}
 	}	
@@ -227,13 +297,15 @@ void delt_room(int sd, int roomnum){
 }
 
 
-int mess_room(int sd, int roomnum, char* message){
+int mess_room(int sd, char* message){
 	//위와 동! 
 	char* msg;
+	int roomnum;
 	for(int i = 0; i < MAX_USER_NUM; i++){
 		if(user_info[i].sd == sd){
 			strcpy(msg, strcat(user_info[i].nickname, ": "));
 			strcpy(msg, strcat(msg, message));
+			roomnum = user_info[i].room;
 			break;
 		}
 	}

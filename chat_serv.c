@@ -12,12 +12,6 @@
 #define MAX_USER_NUM 30
 #define BUF_SIZE 50
 
-#define EXIT_ROOM_CODE /exit
-#define MAKE_ROOM_CODE /make
-#define SHOW_ROOM_CODE /ls
-#define MESS_USER_CODE /w
-#define JOIN_ROOM_CODE /join
-#define DELT_ROOM_CODE /delete
 
 struct sd_nickname_t{
 	int sd;
@@ -37,10 +31,22 @@ struct room_t{
 // 그 정보가 내가 손수만든 구조체에 들어가서 포인터로 날아간다
 void* clnt_thread_main(void* arg);
 void error_handler(char *message);
-int get_unused_num();
+
+
+void exit_room(int sd);
+void make_room(int sd char* title);
+void show_room(int sd);
+void mess_user(int sd, char* nickname, char* message);
+void join_room(int sd, int roomnum);
+void delt_room(int sd, int roomnum);
+void mess_room(int sd, char* message);
+void alert_msg_to_user(int sd, char* message);
+
+int get_blank_room();
+int get_blank_user();
 
 struct sd_nickname_t user_info[MAX_USER_NUM]; 
-struct root_t room_info[MAX_ROOM_NUM];
+struct room_t room_info[MAX_ROOM_NUM];
 
 
 
@@ -82,7 +88,7 @@ int main(int argc, char* argv[]){
 			continue;
 		}
 		strlen = read(clnt_sd, buf, BUF_SIZE);
-		memset(sd_nickname, 0, sizeof(sd_nickname));
+		memset(&sd_nickname, 0, sizeof(sd_nickname));
 		sd_nickname.sd = clnt_sd;
 		sd_nickname.nickname = &buf[0];	
 		sd_nickname.room = 0;
@@ -116,10 +122,10 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 	
 
 	while((str_len = read(clnt_sd, buf, sizeof(buf))) != 0){
-		if((strcmp(buf[0], '/')) == 0){ // if message contains command
+		if((strcmp((char*)buf[0], "/")) == 0){ // if message contains command
 
 			for(int i = 0 ; i < str_len; i++){
-				if((strcmp(buf[i], ' ')) == 0){
+				if((strcmp((char*)buf[i], " ")) == 0){
 					for(int j = 0 ; j < i ; j++){
 						command[j] = buf[j];
 					}
@@ -130,14 +136,14 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 				
 			}
 
-			if((strncmp(command, EXIT_ROOM_CODE, sizeof(EXIT_ROOM_CODE)))==0){
+			if((strncmp(command, "/exit", sizeof("/exit")))==0){
 				
 				exit_room(clnt_sd);	
-			}else if((strncmp(command, MAKE_ROOM_CODE, sizeof(MAKE_ROOM_CODE)))==0){
+			}else if((strncmp(command, "/make", sizeof("/make")))==0){
 				char* title;
 				int j = 0;
 				for(int i = 0; i , str_len; i++){
-					if(strcmp(buf[i], " ")==0){
+					if(strcmp((char*)buf[i], " ")==0){
 						j = i + 1;
 						for(j, int k = 0; j < str_len; j++, k++){
 							buftemp[k] = buf[j];
@@ -147,20 +153,21 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 				}
 				make_room(clnt_sd, buftemp);
 
-			}else if((strncmp(command, SHOW_ROOM_CODE, sizeof(SHOW_ROOM_CODE)))==0){
+			}else if((strncmp(command, "/ls", sizeof("/ls")))==0){
 				show_room(clnt_sd);
 
-			}else if((strncmp(command, MESS_USER_CODE, sizeof(MESS_USER_CODE)))==0){
+			}else if((strncmp(command, "/w", sizeof("/w")))==0){
 				int j = 0;
 				int n = 0;
+				int u;
 				for(int i = 0; i < str_len; i++){
-					if(strcmp(buf[i], " ")==0){
+					if(strcmp((char*)buf[i], " ")==0){
 						j = i + 1;
 						for(j, int k = 0; j < str_len ; j++, k++){
 							bufnick[k] = buf[j];
-							if(strcmp(buf[j], " ") == 0){
+							if(strcmp((char*)buf[j], " ") == 0){
 								n = j + 1;
-								for(n, int u = 0; n < str_len; n++, u++){
+								for(n, u = 0; n < str_len; n++, u++){
 									buftemp[u] = buf[n];
 								}
 								break;
@@ -171,12 +178,13 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 				}
 				mess_user(clnt_sd, bufnick, buftemp);
 
-			}else if((strncmp(command, JOIN_ROOM_CODE, sizeof(JOIN_ROOM_CODE)))==0){
+			}else if((strncmp(command, "/join", sizeof("/join")))==0){
 				int j = 0;
+				int k;
 				for(int i = 0; i < str_len; i++){
-					if(strcmp(buf[i], " ")==0){
+					if(strcmp((char*)buf[i], " ")==0){
 						j = i + 1;
-						for(j, int k = 0; j < str_len ; j++, k++){
+						for(j, k = 0; j < str_len ; j++, k++){
 							numbuf[k] = buf[j];
 						}
 						break;
@@ -184,12 +192,13 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 				}
 				join_room(clnt_sd, atoi(numbuf));
 				
-			}else if((strncmp(command, DELT_ROOM_CODE, sizeof(DELT_ROOM_CODE)))==0){
+			}else if((strncmp(command, "/delete", sizeof("/delete")))==0){
 				int j = 0;
+				int k;
 				for(int i = 0; i < str_len; i ++){
-					if(strcmp(buf[i], " ")==0){
+					if(strcmp((char*)buf[i], " ")==0){
 						j = i + 1;
-						for(j, int k = 0; j < str_len; j++, k++){
+						for(j, k = 0; j < str_len; j++, k++){
 							numbuf[k] = buf[j];
 						}
 						break;
@@ -201,10 +210,11 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 			}	
 		}else{ // if message not contains command
 			int j = 0;
+			int k;
 			for(int i = 0; i < strlen; i++){
-				if(strcmp(buf[i], " ")==0){
+				if(strcmp((char*)buf[i], " ")==0){
 					j = i + 1;
-					for(j, int k = 0; j < str_len; j++, k++){
+					for(j, k = 0; j < str_len; j++, k++){
 						buftemp[k] = buf[j];
 					}
 					break;

@@ -34,7 +34,7 @@ void error_handler(char *message);
 
 
 void exit_room(int sd);
-void make_room(int sd char* title);
+void make_room(int sd, char* title);
 void show_room(int sd);
 void mess_user(int sd, char* nickname, char* message);
 void join_room(int sd, int roomnum);
@@ -307,7 +307,7 @@ void delt_room(int sd, int roomnum){
 }
 
 
-int mess_room(int sd, char* message){
+void mess_room(int sd, char* message){
 	//위와 동! 
 	char* msg;
 	int roomnum;

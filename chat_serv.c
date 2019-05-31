@@ -83,7 +83,7 @@ int main(int argc, char* argv[]){
 		sd_nickname.nickname = &buf[0];	
 		sd_nickname.room = 0;
 		sd_nickname.isuse = 1;
-		arraytemp = get_unused_num();
+		arraytemp = get_blank_user();
 		user_info[arraytemp] = sd_nickname; // ##########임게영역 
 		if((pthread_create(&thread_id, NULL, clnt_thread_main, (void*)&arraytemp)) != 0){
 			close(clnt_sd);
@@ -136,7 +136,7 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 			}else{
 
 			}	
-		}else{ // if not message contains command
+		}else{ // if message not contains command
 			
 
 		}
@@ -151,21 +151,89 @@ void* clnt_thread_main(void* arg){//arg로 그냥 몇번째 유저인지 번호�
 		
 }
        	
-void exit_room(int sd){}
-void make_room(int sd, char* title){}
-void show_room(int sd){}
-void mess_user(int sd, char* nickname){}
-void join_room(int sd, int roomnum){}
-void delt_room(int sd, int roomnum){}
+void exit_room(int sd){
+	
+	for(int i = 0 ; i < MAX_USER_NUM ; i ++){
+		if(user_info[i].sd == sd){
+			user_info[i].room = 0;
+			break;
+		}
+	}
+
+}
+void make_room(int sd, char* title){
+	int room_num = get_blank_room();
+	room_info[room_num].title = title;
+	room_info[room_num].isuse = 1;	
+
+}
+
+void show_room(int sd){
+	for(int i = 0 ; i < MAX_ROOM_NUM; i++){
+		if(room_info[i].isuse == 1){
+			write(sd, room_info[i].title, sizeof(room_info[i].title));
+		}
+	}	
+
+}
+
+void mess_user(int sd, char* nickname, char* message){
+	char sender[50];
+	char *msg;
+		
+	for(int i = 0; i < MAX_USER_NUM; i++){
+		if(user_info[i].sd == sd){
+			sender = user_info[i].nickname;
+			break;
+		}
+	}
+
+	for(int i = 0; i < MAX_USER_NUM; i++){
+		if((strcmp(user_info[i].nickname, nickname))==0){
+			strcpy(msg, strcat(sender, "로부터의 귓속말:"));
+			strcpy(msg, strcat(msg, message));
+		        write(user_info[i].sd, msg, sizeof(msg));
+			break;
+		}
+	}
+
+}
+
+void join_room(int sd, int roomnum){
+	
+	if(room_info[roomnum].isuse == 1){
+		for(int i = 0; i < MAX_USER_NUM; i++){
+			if(user_info[i].sd == sd){
+				user_info[i].room = roomnum;
+				break;
+			}
+		}
+	}
+
+}
 
 
-int mess_room(){
+void delt_room(int sd, int roomnum){
+
+	room_info[roomnum].isuse = 0;
+	for(int i = 0; i < MAX_USER_NUM; i++){
+		if(user_info[i].room == roomnum){
+			user_info[i].room = 0;
+			break;
+		}
+	}
+
+
+}
+
+
+int mess_room(int sd, int roomnum, char* message){
 	//위와 동! 
 	
 
 }
 
-void alert_msg_to_user(){
+void alert_msg_to_user(int sd, char* message){
 
 }
 
@@ -174,8 +242,19 @@ void error_handler(char *message){
 	fputc('\n', stderr);
 	exit(1);
 }
-	
-int get_unused_num(){
+
+int get_blank_room(){
+	int un_used_num;
+	for(int i = 0; i < MAX_ROOM_NUM; i++){
+		if(room_info[i].isuse == 0){
+			un_used_num = i;
+			break;
+		}
+	}
+	return un_used_num;
+}
+
+int get_blank_user(){
 	int un_used_num;	
 	for(int i = 0; i < MAX_USER_NUM; i ++){
 		if(user_info[i].isuse == 0){ // #####################

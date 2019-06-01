@@ -10,7 +10,7 @@
 
 #define MAX_ROOM_NUM 5
 #define MAX_USER_NUM 30
-#define BUF_SIZE 50
+#define BUF_SIZE 100
 
 
 struct sd_nickname_t {
@@ -67,10 +67,13 @@ int main(int argc, char* argv[]) {
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		user_info[i].isuse = 0;
 		user_info[i].room = 0;
+		user_info[i].sd = 2;
 	}
 	for (int i = 0; i < MAX_ROOM_NUM; i++) {
 		room_info[i].isuse = 0;
 	}
+	room_info[0].isuse = 1;
+	strcpy(room_info[0].title, "대기실\n");
 
 
 	// 그 위에 배열 isuse 0 으로 다 초기화 해야한다 	
@@ -162,10 +165,10 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 				exit_room(clnt_sd);
 			}
 			else if ((strncmp(command, "/make", 5)) == 0) {
-				char* title;
+				
 				int j = 0;
 				int k;
-				for (int i = 0; i, str_len; i++) {
+				for (int i = 0; i < str_len; i++) {
 					if (buf[i] == ' ') {
 						j = i + 1;
 						for (j, k = 0; j < str_len; j++, k++) {
@@ -202,6 +205,8 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 						break;
 					}
 				}
+				log(bufnick);
+				log(buftemp);
 				mess_user(clnt_sd, bufnick, buftemp);
 
 			}
@@ -235,7 +240,7 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 				delt_room(clnt_sd, atoi(numbuf));
 			}
 			else {
-				write(clnt_sd, "/ help", sizeof("/ help"));
+				write(clnt_sd, "/ help\n", strlen("/ help\n"));
 			}
 		}
 		else { // if message not contains command
@@ -251,6 +256,7 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 	}
 
 	memset(&user_info[arraynum], 0, sizeof(user_info[arraynum]));
+	user_info[arraynum].sd = 2;
 	close(clnt_sd);
 	// delete array
 	
@@ -284,14 +290,19 @@ void make_room(int sd, char* title) {
 
 void show_room(int sd) {
 	log("show room start");
-	char* msg = "_";
-	write(sd, "SYSTEM : 방 목록", strlen("SYSTEM : 방 목록"));
+	char msg[BUF_SIZE] = {'\0', };
+	char num[BUF_SIZE] = {'\0', };
+
+	write(sd, "SYSTEM : 방 목록\n", strlen("SYSTEM : 방 목록\n"));
 	for (int i = 0; i < MAX_ROOM_NUM; i++) {
 		if (room_info[i].isuse == 1) {
-			strcpy(msg, strcat(msg, atoi(i)));
+			sprintf(num, "%d", i);
+			strcpy(msg, strcat(msg, num));
 			strcpy(msg, strcat(msg, "_번방_방제목 : "));
 			strcpy(msg, strcat(msg, room_info[i].title));
 			write(sd, msg, strlen(msg));
+			memset(msg, 0, sizeof(msg));
+			memset(num, 0, sizeof(num));
 			printf("room name %s \n", room_info[i].title);
 		}
 	}
@@ -301,8 +312,10 @@ void show_room(int sd) {
 
 void mess_user(int sd, char* nickname, char* message) {
 	log("mess user start");
-	char sender[50];
-	char* msg;
+	char sender[BUF_SIZE] = {'\0', };
+	char msg[BUF_SIZE] ={'\0', };
+	char to[BUF_SIZE] = {'\0', };
+	strcpy(to, nickname);
 
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		if (user_info[i].sd == sd) {
@@ -310,11 +323,17 @@ void mess_user(int sd, char* nickname, char* message) {
 			break;
 		}
 	}
-
+	log(nickname);
+	printf("%ld \n", strlen(nickname));
 	for (int i = 0; i < MAX_USER_NUM; i++) {
-		if ((strcmp(user_info[i].nickname, nickname)) == 0) {
+
+		printf("%ld \n", strlen(user_info[i].nickname));
+		log(user_info[i].nickname);
+		if ((strncmp(user_info[i].nickname, to, strlen(to)-1)) == 0 && (strlen(user_info[i].nickname) == strlen(to)-1)) {
+			log("mess id found!!");
 			strcpy(msg, strcat(sender, "님 으로부터의 귓속말 : "));
 			strcpy(msg, strcat(msg, message));
+			log(msg);
 			write(user_info[i].sd, msg, strlen(msg));
 			break;
 		}
@@ -325,16 +344,18 @@ void mess_user(int sd, char* nickname, char* message) {
 
 void join_room(int sd, int roomnum) {
 	log("join room start");
-	char* tempnum;
-	char* alert;
-	strcpy(tempnum, atoi(roomnum));
+	char tempnum[BUF_SIZE] = {'\0', };
+	char alert[BUF_SIZE] = {'\0', };
+	
+	sprintf(tempnum, "%d", roomnum);
+
 	strcpy(alert, "SYSTEM : 다음 방에 입장하셨습니다. ::");
 	
 	if (room_info[roomnum].isuse == 1) {
 		for (int i = 0; i < MAX_USER_NUM; i++) {
 			if (user_info[i].sd == sd) {
 				strcpy(tempnum, strcat(tempnum, "_번방_방제목 : "));
-				strcpy(tempnum, strcat(tempnum, room_info[i].title));
+				strcpy(tempnum, strcat(tempnum, room_info[roomnum].title));
 				strcpy(alert, strcat(alert, tempnum));
 				user_info[i].room = roomnum;
 				write(sd, alert, strlen(alert));
@@ -350,7 +371,7 @@ void join_room(int sd, int roomnum) {
 void delt_room(int sd, int roomnum) {
 	log("delt room start");
 	room_info[roomnum].isuse = 0;
-	char* alert = "SYSTEM : 계시던 방이 닫혀서 대기실로 이동합니다.";
+	char alert[BUF_SIZE] = "SYSTEM : 계시던 방이 닫혀서 대기실로 이동합니다.";
 
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		if (user_info[i].room == roomnum) {

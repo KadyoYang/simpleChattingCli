@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
 	if((connect(serv_sd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)))==-1){
 		error_handler("connect() error");
 	}else{
-		printf("connected");
+		printf("connected\n");
 		if((pthread_create(&thread_id, NULL, send_thread_main, (void*)&serv_sd)) != 0){
 			error_handler("pthread_create() error");
 		}

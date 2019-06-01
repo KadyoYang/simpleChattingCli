@@ -70,6 +70,7 @@ void* send_thread_main(void* arg){
 	while(1){
 		recv_len = 0;
 		recv_len = read(serv_sd, buf, BUF_SIZE);
+		buf[recv_len] = '\0';
 		fputs(buf, stdout);
 	}
 

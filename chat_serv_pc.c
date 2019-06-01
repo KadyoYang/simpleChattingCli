@@ -325,8 +325,10 @@ void mess_user(int sd, char* nickname, char* message) {
 
 void join_room(int sd, int roomnum) {
 	log("join room start");
-	char* tempnum = atoi(roomnum);
-	char* alert = "SYSTEM : 다음 방에 입장하셨습니다. ::";
+	char* tempnum;
+	char* alert;
+	strcpy(tempnum, atoi(roomnum));
+	strcpy(alert, "SYSTEM : 다음 방에 입장하셨습니다. ::");
 	
 	if (room_info[roomnum].isuse == 1) {
 		for (int i = 0; i < MAX_USER_NUM; i++) {

@@ -6,11 +6,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-
+#include <semaphore.h>
 
 #define MAX_ROOM_NUM 10
 #define MAX_USER_NUM 40
 #define BUF_SIZE 100
+
 
 
 struct sd_nickname_t {
@@ -42,10 +43,11 @@ void delt_room(int sd, int roomnum);
 void mess_room(int sd, char* message);
 void user_list(int sd);
 
-
 int get_blank_room();
 int get_blank_user();
 
+sem_t room_sem;
+sem_t user_sem;
 struct sd_nickname_t user_info[MAX_USER_NUM];
 struct room_t room_info[MAX_ROOM_NUM];
 
@@ -58,10 +60,12 @@ int main(int argc, char* argv[]) {
 	struct sd_nickname_t sd_nickname;
 	char nickname[BUF_SIZE];
 	char buf[BUF_SIZE];
-	int strlen = 0;
+	int str_len = 0;
 	pthread_t thread_id;
 	int arraytemp;
 
+	if ((sem_init(&room_sem, 0, 1) != 0 ) || (sem_init(&user_sem, 0, 1) != 0) ) 
+		error_handler("sem_init() error!");
 
 	memset(user_info, 0, sizeof(user_info));
 	memset(room_info, 0, sizeof(room_info));
@@ -102,16 +106,23 @@ int main(int argc, char* argv[]) {
 			close(clnt_sd);
 			continue;
 		}
-		strlen = read(clnt_sd, buf, BUF_SIZE);
+		str_len = read(clnt_sd, buf, BUF_SIZE);
 		memset(&sd_nickname, 0, sizeof(sd_nickname));
 		sd_nickname.sd = clnt_sd;
 		strcpy(sd_nickname.nickname, buf);
 		sd_nickname.room = 0;
 		sd_nickname.isuse = 1;
 		arraytemp = get_blank_user();
+		if (arraytemp == -1) {
+			write(clnt_sd, "SYSTEM : 접속 유저를 더 이상 만들 수 없습니다.\n", strlen("SYSTEM : 접속 유저를 더 이상 만들 수 없습니다.\n"));
+			close(clnt_sd);
+			continue;
+		}
+		sem_wait(&user_sem);
 		user_info[arraytemp] = sd_nickname; // ##########임게영역 
 		printf("sd = %d \n", user_info[0].sd);
 		printf("isuse = %d \n", user_info[0].isuse);
+		sem_post(&user_sem);
 		if ((pthread_create(&thread_id, NULL, clnt_thread_main, (void*)& arraytemp)) != 0) {
 			close(clnt_sd);
 			continue;
@@ -120,6 +131,9 @@ int main(int argc, char* argv[]) {
 		printf("new client is connected %s %s \n", buf, inet_ntoa(clnt_addr.sin_addr));
 
 	}
+
+	sem_destroy(&user_sem);
+	sem_destroy(&room_sem);
 	close(serv_sd);
 	return 0;
 }
@@ -260,9 +274,10 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 		memset(numbuf, '\0', sizeof(numbuf));
 
 	}
-
+	sem_wait(&user_sem);
 	memset(&user_info[arraynum], 0, sizeof(user_info[arraynum]));
 	user_info[arraynum].sd = 2;
+	sem_post(&user_sem);
 	close(clnt_sd);
 	// delete array
 	
@@ -392,7 +407,7 @@ void delt_room(int sd, int roomnum) {
 		if (user_info[i].room == roomnum) {
 			user_info[i].room = 0;
 			write(user_info[i].sd, alert, strlen(alert));
-			break;
+			
 		}
 	}
 	log("delt room end");
@@ -476,6 +491,7 @@ void error_handler(char* message) {
 
 int get_blank_room() {
 	log("get blank room start");
+	sem_wait(&room_sem);
 	int un_used_num = -1;
 	for (int i = 0; i < MAX_ROOM_NUM; i++) {
 		if (room_info[i].isuse == 0) {
@@ -483,19 +499,22 @@ int get_blank_room() {
 			break;
 		}
 	}
+	sem_post(&room_sem);
 	log("get blank room end");
 	return un_used_num;
 }
 
 int get_blank_user() {
 	log("get blank user start");
-	int un_used_num;
+	sem_wait(&user_sem);
+	int un_used_num = -1;
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		if (user_info[i].isuse == 0) { // #####################
 			un_used_num = i;
 			break;
 		}
 	}
+	sem_post(&user_sem);
 	log("get blank user end");
 	return un_used_num;
 }

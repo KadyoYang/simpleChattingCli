@@ -7,12 +7,12 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define BUF_SIZE 50
+#define BUF_SIZE 100
 
 
 
 void error_handler(char* message);
-void * send_thread_main(void* arg);
+void * recv_thread_main(void* arg);
 
 
 int main(int argc, char* argv[]){
@@ -40,12 +40,14 @@ int main(int argc, char* argv[]){
 		error_handler("connect() error");
 	}else{
 		printf("connected\n");
-		if((pthread_create(&thread_id, NULL, send_thread_main, (void*)&serv_sd)) != 0){
+		if((pthread_create(&thread_id, NULL, recv_thread_main, (void*)&serv_sd)) != 0){
 			error_handler("pthread_create() error");
 		}
-
+		
 	}
 	write(serv_sd, buf, sizeof(buf));
+	pthread_detach(thread_id);
+
 	while(1){
 		fgets(buf, BUF_SIZE, stdin);
 		if(!strcmp(buf, "q\n") || !strcmp(buf, "Q\n"))
@@ -61,7 +63,7 @@ int main(int argc, char* argv[]){
 
 
 
-void* send_thread_main(void* arg){
+void* recv_thread_main(void* arg){
 	int serv_sd = *(int*)arg;
 	int recv_len;
 	int str_len;

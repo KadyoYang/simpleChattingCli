@@ -40,6 +40,7 @@ int main(int argc, char* argv[]){
 		error_handler("connect() error");
 	}else{
 		printf("connected\n");
+		// 받는 역할만 하는 쓰레드 생성 
 		if((pthread_create(&thread_id, NULL, recv_thread_main, (void*)&serv_sd)) != 0){
 			error_handler("pthread_create() error");
 		}
@@ -48,6 +49,10 @@ int main(int argc, char* argv[]){
 	write(serv_sd, buf, sizeof(buf));
 	pthread_detach(thread_id);
 
+	// 여기까지 소켓 커넥트 
+
+
+	// 메인쓰레드는 계속 보내는 역할만 수행한다.
 	while(1){
 		fgets(buf, BUF_SIZE, stdin);
 		if(!strcmp(buf, "q\n") || !strcmp(buf, "Q\n"))
@@ -61,8 +66,9 @@ int main(int argc, char* argv[]){
 
 
 
-
-
+// 받기만 하는 쓰레드
+// 이 쓰레드는 받기만 한다.
+// 화면에 뿌려주기도한다.
 void* recv_thread_main(void* arg){
 	int serv_sd = *(int*)arg;
 	int recv_len;

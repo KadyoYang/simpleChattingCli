@@ -14,26 +14,32 @@
 
 
 
+// 유저정보담는 구조체 선언
 struct sd_nickname_t {
-	int sd;
-	char nickname[30];
-	int room; // 0 is room list i > 0 is specific room
-	int isuse; // 0 false 1 true
+	int sd;  
+	char nickname[30]; 
+	int room; 
+	int isuse; 
 };
 
+// 방정보 담는 구조체 선언
 struct room_t {
 	char title[30];
 	int isuse;
 };
 
+// 무식한 디버그용 로그 함수 ㅎㅎ
 void log(char* message);
 
 // 클라이언트 에서는 먼저 ./chat_clnt 127.0.0.1 9849 id 식으로 접속을 해야함 
-// 그 정보가 내가 손수만든 구조체에 들어가서 포인터로 날아간다
+// 클라이언트 명령통신용 쓰레드
 void* clnt_thread_main(void* arg);
+
+//에러 핸들링
 void error_handler(char* message);
 
-
+// 클라이언트 명령 함수 선언은 여기다가 했고 
+// 정의는 밑에다가 했음 
 void exit_room(int sd);
 void make_room(int sd, char* title);
 void show_room(int sd);
@@ -43,32 +49,40 @@ void delt_room(int sd, int roomnum);
 void mess_room(int sd, char* message);
 void user_list(int sd);
 
+// user_info 배열 room_info 배열의 비어있는 공간 찾아서 리턴하는 함수들
+// 여기에 세마포어 걸어놓으면 동시에 여러 쓰레드가 접근함으로 인해서 생기는 대부분의 문제가 해결될듯해서 세마포어 걸어놓음
 int get_blank_room();
 int get_blank_user();
 
+// 문제의 세마포어 변수 선언
 sem_t room_sem;
 sem_t user_sem;
+
+// 유저정보 방정보 담는 배열 선언 
 struct sd_nickname_t user_info[MAX_USER_NUM];
 struct room_t room_info[MAX_ROOM_NUM];
 
-
-
+//############################################ 메인 함수 ######################################################
+// 메인 함수
 int main(int argc, char* argv[]) {
-	int serv_sd, clnt_sd; //서버 클라이어느 소켓 디스크립터 변수 선언
+	int serv_sd, clnt_sd; // 서버 클라이어느 소켓 디스크립터 변수 선언
 	struct sockaddr_in serv_addr, clnt_addr;
-	socklen_t clnt_addr_size;
-	struct sd_nickname_t sd_nickname;
+	socklen_t clnt_addr_size; 
+	struct sd_nickname_t sd_nickname; // 전역 room_info배열에 넣을 정보가 들어갈 구조체변수
 	char nickname[BUF_SIZE];
 	char buf[BUF_SIZE];
 	int str_len = 0;
 	pthread_t thread_id;
 	int arraytemp;
 
+	// 세마포어 초기화 단일 프로세스에서 여러 쓰레드가 돌면서 공유할것이므로 0 설정 세마포어 키 초기값은 1설정 
 	if ((sem_init(&room_sem, 0, 1) != 0 ) || (sem_init(&user_sem, 0, 1) != 0) ) 
 		error_handler("sem_init() error!");
 
+	// 전역 배열 초기화
 	memset(user_info, 0, sizeof(user_info));
 	memset(room_info, 0, sizeof(room_info));
+	// 혹시 몰라서 무식하게 초기화
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		user_info[i].isuse = 0;
 		user_info[i].room = 0;
@@ -77,6 +91,7 @@ int main(int argc, char* argv[]) {
 	for (int i = 0; i < MAX_ROOM_NUM; i++) {
 		room_info[i].isuse = 0;
 	}
+	// 대기실 생성
 	room_info[0].isuse = 1;
 	strcpy(room_info[0].title, "대기실\n");
 
@@ -99,6 +114,10 @@ int main(int argc, char* argv[]) {
 	if ((listen(serv_sd, 5)) == -1)
 		error_handler("listen() error");
 
+	// 여기까지 보통의 소켓 생성후 바인드 리슨
+
+
+	// 메인쓰레드는 계속 이것만 반복하면서 클라이언트 받고 유저한계치가 도달하면 접속 거절한다.
 	while (1) {
 		log("mainthread while");
 		clnt_addr_size = sizeof(clnt_addr);
@@ -119,10 +138,11 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 		sem_wait(&user_sem);
-		user_info[arraytemp] = sd_nickname; // ##########임게영역 
+		user_info[arraytemp] = sd_nickname;
 		printf("sd = %d \n", user_info[0].sd);
 		printf("isuse = %d \n", user_info[0].isuse);
 		sem_post(&user_sem);
+		// 쓰레드 생성 실패시 클라이언트 소켓 클로즈 후 컨티뉴
 		if ((pthread_create(&thread_id, NULL, clnt_thread_main, (void*)& arraytemp)) != 0) {
 			close(clnt_sd);
 			continue;
@@ -138,12 +158,13 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-
-
-void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호만 알려주고 그 번호로 전역구조체 참조해서use
+// ############################################# 클라이언트 쓰레드 메인함수#############################
+// 클라이언트 통신용 쓰레드 
+// arg 매개변수로 몇번째 room_user[] 배열 공간 쓰는지 받아온다
+void* clnt_thread_main(void* arg) {
 	int arraynum = *((int*)arg);
-	// 흠.. 
-	int clnt_sd = user_info[arraynum].sd; // ############### im gae
+	// 각종 변수 선언 및 초기화 
+	int clnt_sd = user_info[arraynum].sd;
 	int str_len, roomtemp;
 	char buf[BUF_SIZE] = { '\0', };
 	char buftemp[BUF_SIZE] = { '\0', };
@@ -153,6 +174,9 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 
 	log("clnt_thread_main init");
 
+	// 클라이언트 통신용 쓰레드는 이것을 계속 반복한다.
+	// 주된 일은 문자열을 분석해서 명령 구문인지 아니면 그냥 메시지인지
+	// 알아낸 다음 알맞는 클라이언트 명령 함수 호출
 	while (str_len = read(clnt_sd, buf, sizeof(buf))) {
 		buf[str_len] = '\0';
 		log("clnt while() 1 ");
@@ -272,16 +296,22 @@ void* clnt_thread_main(void* arg) {//arg로 그냥 몇번째 유저인지 번호
 		memset(bufnick, '\0', sizeof(bufnick));
 		memset(command, '\0', sizeof(command));
 		memset(numbuf, '\0', sizeof(numbuf));
-
+		// 다 사용한 변수들은 다시 널로 초기화/ char배열이라서 널 넣었는데 괜찮은건가요? ㅎㅎ
 	}
+	// 클라이언트가 접속종료하거나 꺼버리면 정보 삭제 후 클로즈 
 	sem_wait(&user_sem);
 	memset(&user_info[arraynum], 0, sizeof(user_info[arraynum]));
 	user_info[arraynum].sd = 2;
 	sem_post(&user_sem);
 	close(clnt_sd);
-	// delete array
+	// delete elements of user_info[]
 	
 }
+
+
+
+
+// ############################## 클라이언트 명령 함수 ############################
 
 void exit_room(int sd) {
 	log("exit room start");
@@ -480,8 +510,11 @@ void user_list(int sd) {
 		}
 	}
 }
+//  클라이언트 명령함수 끝 
 
 
+
+// 각종 함수들 정의 시작 
 
 void error_handler(char* message) {
 	fputs(message, stderr);
@@ -519,6 +552,8 @@ int get_blank_user() {
 	return un_used_num;
 }
 
+
+// 로그 함수 
 void log(char* message) {
 	fputs(message, stdout);
 	fputc('\n', stdout);

@@ -20,6 +20,7 @@ int main(int argc, char* argv[]){
 	struct sockaddr_in serv_addr;
 	pthread_t thread_id;
 	char buf[50] = {'\0', };
+	char nickname[20] = {'\0', };
 	int str_len;	
 
 	if(argc != 4){
@@ -48,12 +49,14 @@ int main(int argc, char* argv[]){
 	}
 	write(serv_sd, buf, sizeof(buf));
 	pthread_detach(thread_id);
-
+	strcpy(nickname, buf);
+	strcpy(nickname, strcat(nickname, ">>'\0'"));
 	// 여기까지 소켓 커넥트 
 
 
 	// 메인쓰레드는 계속 보내는 역할만 수행한다.
 	while(1){
+		fputs(nickname, stdout);
 		fgets(buf, BUF_SIZE, stdin);
 		if(!strcmp(buf, "q\n") || !strcmp(buf, "Q\n"))
 			break;

@@ -48,6 +48,7 @@ void join_room(int sd, int roomnum);
 void delt_room(int sd, int roomnum);
 void mess_room(int sd, char* message);
 void user_list(int sd);
+void kick_user(int sd, char* nickname);
 
 // user_info 배열 room_info 배열의 비어있는 공간 찾아서 리턴하는 함수들
 // 여기에 세마포어 걸어놓으면 동시에 여러 쓰레드가 접근함으로 인해서 생기는 대부분의 문제가 해결될듯해서 세마포어 걸어놓음
@@ -282,6 +283,22 @@ void* clnt_thread_main(void* arg) {
 			else if ((strncmp(command, "/userlist", 9 )) == 0 && strlen(command) == 10) {
 				user_list(clnt_sd);
 			}
+			else if ((strncmp(command, "/kick", 5)) == 0 && strlen(command) == 6) {
+
+				int j = 0;
+				int k;
+				for (int i = 0; i < str_len; i++) {
+					if (buf[i] == ' ') {
+						j = i + 1;
+						for (j, k = 0; j < str_len; j++, k++) {
+							buftemp[k] = buf[j];
+						}
+						break;
+					}
+				}
+
+				kick_user(clnt_sd, buftemp);
+			}
 			else {
 				char* helpmsg = "---ListOfCommand---\n/help - show command list\n/exit - exit from chat romm\n/ls - show room list\n/make <title> - make chat room\n/w <nickname> <message> - send message to specific user\n/join <room number> - participate in specific chat room\n/delete <room number> - delete room from server\n/userlist - show userlist\n<message> - send message\n";
 				write(clnt_sd, helpmsg, strlen(helpmsg));
@@ -510,6 +527,37 @@ void user_list(int sd) {
 		}
 	}
 }
+
+void kick_user(int sd, char* nickname) {
+	log("kick user start");
+	char sender[BUF_SIZE] = { '\0', };
+	char msg[BUF_SIZE] = { '\0', };
+	
+
+	for (int i = 0; i < MAX_USER_NUM; i++) {
+		if (user_info[i].sd == sd) {
+			strcpy(sender, user_info[i].nickname);
+			break;
+		}
+	}
+	
+	
+	for (int i = 0; i < MAX_USER_NUM; i++) {
+		if (strncmp(user_info[i].nickname, nickname, strlen(user_info[i].nickname)) == 0) {
+			strcpy(msg, strcat(msg, sender));
+			strcpy(msg, strcat(msg, "님이 당신을 추방했습니다.\n"));
+			user_info[i].room = 0;
+			write(user_info[i].sd, msg, strlen(msg));
+			break;
+		}
+	}
+
+	log("kick user end");
+
+}
+
+
+
 //  클라이언트 명령함수 끝 
 
 

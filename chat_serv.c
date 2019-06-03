@@ -172,6 +172,8 @@ void* clnt_thread_main(void* arg) {
 	char bufnick[BUF_SIZE] = { '\0', };
 	char command[10] = { '\0', };
 	char numbuf[10] = { '\0', };
+	char helpmsg[BUF_SIZE] = { '\0', };
+
 
 	log("clnt_thread_main init");
 
@@ -300,7 +302,25 @@ void* clnt_thread_main(void* arg) {
 				kick_user(clnt_sd, buftemp);
 			}
 			else {
-				char* helpmsg = "---ListOfCommand---\n/help - show command list\n/exit - exit from chat romm\n/ls - show room list\n/make <title> - make chat room\n/w <nickname> <message> - send message to specific user\n/join <room number> - participate in specific chat room\n/delete <room number> - delete room from server\n/userlist - show userlist\n<message> - send message\n";
+				strcpy(helpmsg,"---명령어---\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/help - 도움말\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/exit - 방에서 나가기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/ls - 방 목록 보기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/make <title> - 방 만들기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/w <nickname> <message> - 귓속말하기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/join <room number> - 방 들어가기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/delete <room number> - 방 없애기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/userlist - 유저 목록 보기\n");
+				write(clnt_sd, helpmsg, strlen(helpmsg));
+				strcpy(helpmsg, "/kick <nickname> - 해당 닉네임 강퇴하기\n");
 				write(clnt_sd, helpmsg, strlen(helpmsg));
 			}
 		}
@@ -332,12 +352,25 @@ void* clnt_thread_main(void* arg) {
 
 void exit_room(int sd) {
 	log("exit room start");
+	int roomnum;
+	char msg[BUF_SIZE] = { '\0', };
+
+	strcpy(msg, "SYSTEM : ");
 	char* alert = "SYSTEM : 대기실로 나오셨습니다.\n";
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		if (user_info[i].sd == sd) {
+			roomnum = user_info[i].room;
 			user_info[i].room = 0;
 			write(sd, alert, strlen(alert));
+
+			strcpy(msg, strcat(msg, user_info[i].nickname));
+			strcpy(msg, strcat(msg, "님이 퇴장했습니다.\n"));
 			break;
+		}
+	}
+	for (int i = 0; i < MAX_USER_NUM; i++) {
+		if (user_info[i].room == roomnum) {
+			write(user_info[i].sd, msg, strlen(msg));
 		}
 	}
 	log("exit room end");
@@ -420,20 +453,28 @@ void join_room(int sd, int roomnum) {
 	log("join room start");
 	char tempnum[BUF_SIZE] = {'\0', };
 	char alert[BUF_SIZE] = {'\0', };
-	
+	char bdcast[BUF_SIZE] = { '\0', };
 	sprintf(tempnum, "%d", roomnum);
 
 	strcpy(alert, "SYSTEM : 다음 방에 입장하셨습니다. ::");
-	
+	strcpy(bdcast, "SYSTEM : ");
+
 	if (room_info[roomnum].isuse == 1) {
 		for (int i = 0; i < MAX_USER_NUM; i++) {
 			if (user_info[i].sd == sd) {
+				strcpy(bdcast, strcat(bdcast, user_info[i].nickname));
+				strcpy(bdcast, strcat(bdcast, "님이 방에 입장하셨습니다.\n"));
 				strcpy(tempnum, strcat(tempnum, "_번방_방제목 : "));
 				strcpy(tempnum, strcat(tempnum, room_info[roomnum].title));
 				strcpy(alert, strcat(alert, tempnum));
 				user_info[i].room = roomnum;
 				write(sd, alert, strlen(alert));
 				break;
+			}
+		}
+		for (int i = 0; i < MAX_USER_NUM; i++) {
+			if (user_info[i].sd != sd && user_info[i].room == roomnum && user_info[i].isuse == 1) {
+				write(user_info[i].sd, bdcast, strlen(bdcast));
 			}
 		}
 	}
@@ -451,7 +492,7 @@ void delt_room(int sd, int roomnum) {
 	char alert[BUF_SIZE] = "SYSTEM : 계시던 방이 닫혀서 대기실로 이동합니다.\n";
 
 	for (int i = 0; i < MAX_USER_NUM; i++) {
-		if (user_info[i].room == roomnum) {
+		if (user_info[i].room == roomnum && user_info[i].isuse == 1) {
 			user_info[i].room = 0;
 			write(user_info[i].sd, alert, strlen(alert));
 			

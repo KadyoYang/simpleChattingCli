@@ -14,13 +14,14 @@
 void error_handler(char* message);
 void * recv_thread_main(void* arg);
 
+char nickname[30] = { '\0', };
 
 int main(int argc, char* argv[]){
 	int serv_sd;
 	struct sockaddr_in serv_addr;
 	pthread_t thread_id;
 	char buf[50] = {'\0', };
-	char nickname[20] = {'\0', };
+	
 	int str_len;	
 
 	if(argc != 4){
@@ -50,7 +51,7 @@ int main(int argc, char* argv[]){
 	write(serv_sd, buf, sizeof(buf));
 	pthread_detach(thread_id);
 	strcpy(nickname, buf);
-	strcpy(nickname, strcat(nickname, ">>'\0'"));
+	strcpy(nickname, strcat(nickname, ">>\0"));
 	// 여기까지 소켓 커넥트 
 
 
@@ -79,10 +80,20 @@ void* recv_thread_main(void* arg){
 	char buf[BUF_SIZE];
 
 	while(1){
-		recv_len = 0;
+
 		recv_len = read(serv_sd, buf, BUF_SIZE);
+		
+		
+
+		write(1, "\033[0G", 4);//커서위치 변경
+
 		buf[recv_len] = '\0';
 		fputs(buf, stdout);
+
+		
+		fprintf(stderr, "%s>", nickname); // 아이디 
+
+		memset(buf, '\0', sizeof(buf));
 	}
 
 }

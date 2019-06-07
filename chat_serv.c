@@ -14,7 +14,7 @@
 
 
 
-// 유저정보담는 구조체 선언
+// 유저정보담는 구조체 정의
 struct sd_nickname_t {
 	int sd;  
 	char nickname[30]; 
@@ -22,7 +22,7 @@ struct sd_nickname_t {
 	int isuse; 
 };
 
-// 방정보 담는 구조체 선언
+// 방정보 담는 구조체 정의
 struct room_t {
 	char title[30];
 	int isuse;

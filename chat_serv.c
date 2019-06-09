@@ -9,7 +9,7 @@
 #include <semaphore.h>
 
 #define MAX_ROOM_NUM 10
-#define MAX_USER_NUM 40
+#define MAX_USER_NUM 3
 #define BUF_SIZE 100
 
 

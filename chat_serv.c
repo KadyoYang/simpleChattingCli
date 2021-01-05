@@ -28,7 +28,6 @@ struct room_t {
 	int isuse;
 };
 
-// 무식한 디버그용 로그 함수 ㅎㅎ
 void log(char* message);
 
 // 클라이언트 에서는 먼저 ./chat_clnt 127.0.0.1 9849 id 식으로 접속을 해야함 

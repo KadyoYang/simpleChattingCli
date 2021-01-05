@@ -13,3 +13,14 @@
 * 개발기간
     - 5일 
     - 너무 급박하게 만들어서 코드가 난잡함
+
+# Screenshot
+<div>
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609097-6c751800-4f60-11eb-93fb-b0edaf170747.PNG">
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609099-6da64500-4f60-11eb-87a9-547dfcc348db.PNG">
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609101-6f700880-4f60-11eb-936f-24d71abacb0e.PNG">
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609103-70a13580-4f60-11eb-84b3-eba350618405.PNG">
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609106-726af900-4f60-11eb-8a5c-dbf199f8700c.PNG">
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609110-739c2600-4f60-11eb-8dc2-f5befdf434b5.PNG">
+<img width="900" src="https://user-images.githubusercontent.com/49367014/103609116-79920700-4f60-11eb-8401-a8d8da785b0a.PNG">
+</div>
